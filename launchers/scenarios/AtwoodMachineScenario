@@ -1,0 +1,67 @@
+package launcher.scenarios;
+
+import launcher.Scenario;
+import launcher.ScenarioParameter;
+import launcher.SceneResult;
+import math.Vector3;
+import physics.PhysicsWorld;
+import physics.RopeConstraint;
+import render.Camera;
+import scene.GameObject;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+public class AtwoodMachineScenario implements Scenario {
+
+    @Override
+    public String getName() { return "Atwood Machine"; }
+
+    @Override
+    public String getDescription() {
+        return "Two masses connected by a rope over a pulley. The heavier side falls, the lighter side rises — watch the tension arrows stay equal on both sides while the rope is taut.";
+    }
+
+    @Override
+    public List<ScenarioParameter> getParameters() {
+        return Arrays.asList(
+                new ScenarioParameter("Mass A (kg)", "massA", 0.05, 0.5, 0.25, 0.01),
+                new ScenarioParameter("Mass B (kg)", "massB", 0.05, 0.5, 0.20, 0.01)
+        );
+    }
+
+    @Override
+    public SceneResult build(Map<String, Double> values) {
+        double massAVal = values.get("massA");
+        double massBVal = values.get("massB");
+
+        PhysicsWorld world = new PhysicsWorld();
+        world.getSurfaces().clear();
+
+        Vector3 pulleyPosition = new Vector3(0, 2.5, 10); // pulley mounted on a stand, ~2.5m up
+        Vector3 down = new Vector3(0, -1, 0);
+
+        double floorY = 0; // tabletop/floor the falling mass lands on
+        world.addSurface(new physics.Surface(new Vector3(0, floorY, 0), new Vector3(0, 1, 0)));
+
+        // Masses start about 0.5m below the pulley — a realistic drop height for timing a fall
+        double startingDistanceFromPulley = 0.5;
+        GameObject massA = new GameObject(new Vector3(-0.3, pulleyPosition.y - startingDistanceFromPulley, 10),
+                new Vector3(0, 0, 0), massAVal, 0.05);
+        GameObject massB = new GameObject(new Vector3(0.3, pulleyPosition.y - startingDistanceFromPulley, 10),
+                new Vector3(0, 0, 0), massBVal, 0.05);
+
+        List<GameObject> objects = new ArrayList<>();
+        objects.add(massA);
+        objects.add(massB);
+        world.addObject(massA);
+        world.addObject(massB);
+
+        world.addRopeConstraint(new RopeConstraint(massA, down, massB, down, pulleyPosition));
+
+        Camera camera = new Camera(new Vector3(0, 1.5, 5), new Vector3(0, 1.5, 10), 60);
+        return new SceneResult(world, objects, camera, massA, massB);
+    }
+}
